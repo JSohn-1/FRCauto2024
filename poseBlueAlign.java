@@ -23,30 +23,31 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 @TeleOp(name = "poseBlueAlign (Blocks to Java)")
 public class poseBlueAlign extends LinearOpMode {
   
-  private DcMotor motor0;
-  private DcMotor motor1;
-  private DcMotor motor2;
-  private DcMotor motor3;
+  private DcMotor frontRight;
+  private DcMotor frontLeft;
+  private DcMotor backRight;
+  private DcMotor backLeft;
   List<AprilTagDetection> myAprilTagDetections;
   boolean USE_WEBCAM;
   AprilTagProcessor myAprilTagProcessor;
   AprilTagDetection myAprilTagDetection;
   VisionPortal myVisionPortal;
+  final Double PI = 3.14159;
 
   /**
    * This function is executed when this OpMode is selected from the Driver Station.
    */
   @Override
   public void runOpMode() {
-    motor0 = hardwareMap.get(DcMotor.class, "motor0");
-    motor1 = hardwareMap.get(DcMotor.class, "motor1");
-    motor2 = hardwareMap.get(DcMotor.class, "motor2");
-    motor3 = hardwareMap.get(DcMotor.class, "motor3");
+    backLeft = hardwareMap.get(DcMotor.class, "motor0");
+    backRight = hardwareMap.get(DcMotor.class, "motor1");
+    frontRight = hardwareMap.get(DcMotor.class, "motor2");
+    frontLeft = hardwareMap.get(DcMotor.class, "motor3");
     
-    motor0.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    motor3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     
     // This 2023-2024 OpMode illustrates the basics of AprilTag recognition and pose estimation.
     USE_WEBCAM = false;
@@ -59,6 +60,7 @@ public class poseBlueAlign extends LinearOpMode {
     waitForStart();
     if (opModeIsActive()) {
       // Put run blocks here.
+      
       while (opModeIsActive()) {
         // Put loop blocks here.
         // telemetryAprilTag();
@@ -77,9 +79,13 @@ public class poseBlueAlign extends LinearOpMode {
           myVisionPortal.resumeStreaming();
         }
         turn();
+        moveToPos();
         // Share the CPU.
         sleep(20);
       }
+      
+      // sleep(20);
+      // turn();
     }
   }
 
@@ -212,11 +218,13 @@ public class poseBlueAlign extends LinearOpMode {
     
   }
   
-  private void drive(double one, double two, double three, double four){
-    motor0.setPower(one);
-    motor1.setPower(two);
-    motor2.setPower(three);
-    motor3.setPower(four);
+  private void drive(double backRightPower, double backLeftPower, double frontRightPower, double frontLeftPower){
+    backRight.setPower(backRightPower);
+    backLeft.setPower(backLeftPower);
+    frontRight.setPower(frontRightPower);
+    frontLeft.setPower(frontLeftPower);
+    
+    telemetry.update();
   }
   
   private void turn(){
@@ -238,6 +246,29 @@ public class poseBlueAlign extends LinearOpMode {
       }else{
         drive(-0.5, -0.5, -0.5, -0.5);
       }
-      telemetry.update();    }
+      telemetry.update();    
+    }
+  }
+  
+  private void moveToPos(){
+    while(true){
+      HashMap<Character, Double> tag = getPosToAprilTag();
+      if(tag == null){
+        telemetry.addLine("nul");
+        drive(0,0,0,0);
+        continue;
+      }
+      final Double DISTANCE = 7.0;
+      Double frontRight = Math.sin(Math.toRadians(Math.atan((tag.get('x') - DISTANCE)/tag.get('y'))) - (PI/4)) * 0.5;
+      Double frontLeft =  Math.sin(Math.toRadians(Math.atan((tag.get('x') - DISTANCE)/tag.get('y'))) + (PI/4)) * 0.5;
+      
+      if(Math.abs(tag.get('y')) < 1 && Math.abs(tag.get('x')) < DISTANCE){
+        drive(0,0,0,0);
+        telemetry.update();
+        break;
+      }
+      
+      drive(-frontLeft, -frontRight, frontRight, frontLeft);
+    }
   }
 }
