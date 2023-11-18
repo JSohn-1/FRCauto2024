@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.HashMap;
 import java.lang.Math;
 
+import org.firstinspires.ftc.teamcode.MiniPID;
+
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -226,8 +228,27 @@ public class poseBlueAlign extends LinearOpMode {
     
     telemetry.update();
   }
-  
+  private void driveAdvanced(double x, double y, double magnitude){
+      Double frontRight = Math.sin(Math.toRadians(Math.atan(x/y)) - (PI/4)) * magnitude;
+      Double frontLeft =  Math.sin(Math.toRadians(Math.atan(x/y)) + (PI/4)) * magnitude;
+
+      drive(-frontLeft, -frontRight, frontRight, frontLeft);
+}
+
+private void y(int time, double magnitude){
+    drive(-magnitude, magnitude, -magnitude, magnitude);
+    sleep(time);
+    drive(0,0,0,0);
+}
+
+private void x(int time, double magnitude){
+    drive(-magnitude, -magnitude, magnitude, magnitude);
+    sleep(time);
+    drive(0,0,0,0);
+}
   private void turn(){
+    MiniPID pid = new MiniPID(2,1,1);
+    
     while(true){
       HashMap<Character, Double> tag = getRotToAprilTag();
       if(tag == null){
@@ -237,14 +258,16 @@ public class poseBlueAlign extends LinearOpMode {
         continue;
       }
     double rot = tag.get('y');
+    double output = pid.getOutput(rot, 0.0);
+    output *= 0.5;
     if(Math.abs(rot) < 3){
       break;
     }
       telemetry.addLine(Double.valueOf(rot).toString());
       if(rot > 0){
-        drive(0.5, 0.5, 0.5, 0.5);
+        drive(output, output, output, output);
       }else{
-        drive(-0.5, -0.5, -0.5, -0.5);
+        drive(-output, -output, -output, -output);
       }
       telemetry.update();    
     }
