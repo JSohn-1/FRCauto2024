@@ -16,9 +16,9 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.HashMap;
 import java.util.List;
 
-@TeleOp(name = "driveOPAdvanced")
+@TeleOp(name = "DriveOPAuto")
 
-public class driveOP extends LinearOpMode {
+public class DriveOPAuto extends LinearOpMode {
     private DcMotor frontRight;
     private DcMotor frontLeft;
     private DcMotor backRight;
@@ -49,7 +49,7 @@ public class driveOP extends LinearOpMode {
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        // arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         USE_WEBCAM = false;
         initAprilTag();
@@ -63,11 +63,11 @@ public class driveOP extends LinearOpMode {
         while (opModeIsActive()) {
             telemetry.addData("Status", "Running");
             driveAdvanced();
-            rotate();
+            // rotate();
             armControl();
             setDroneLauncher();
             align();
-
+            hold();
             telemetry.update();
 
         }
@@ -89,23 +89,33 @@ public class driveOP extends LinearOpMode {
     private void driveAdvanced() {
         double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
         double x = gamepad1.left_stick_x; // Counteract imperfect strafing
+        double x_two = gamepad1.right_stick_x;
 
+        if(Math.abs(y)<0.01 && Math.abs(x) < 0.01 && Math.abs(x_two) < 0.01){
+            return;
+        }
+        
         // Determine the angle to robot needs to travel in
         double angle = Math.atan2(y, x);
-        double magnitude = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        double magnitude = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)) * 2;
 
         double frontRightPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
         double frontLeftPower = Math.sin(angle + (Math.PI / 4)) * magnitude; 
         double backRightPower = Math.sin(angle + (Math.PI / 4)) * magnitude;
         double backLeftPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
-
+        
+        frontRightPower += -x_two*2;
+        frontLeftPower += x_two*2;
+        backRightPower += -x_two*2;
+        backLeftPower += x_two*2;
+        
         boolean precision = gamepad1.left_bumper && gamepad1.right_bumper;
 
         if (precision) {
-            frontLeftPower *= 0.5;
-            backLeftPower *= 0.5;
-            frontRightPower *= 0.5;
-            backRightPower *= 0.5;
+            frontLeftPower *= 0.1;
+            backLeftPower *= 0.1;
+            frontRightPower *= 0.1;
+            backRightPower *= 0.1;
         }
 
         drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
@@ -124,11 +134,15 @@ public class driveOP extends LinearOpMode {
 
     private void rotate() {
         double x = gamepad1.right_stick_x;
-
-        double frontRightPower = x;
-        double frontLeftPower = -x;
-        double backRightPower = x;
-        double backLeftPower = -x;
+        x*=2;
+        if(Math.abs(x)<0.1){
+            return;
+        }
+        
+        double frontRightPower = -x;
+        double frontLeftPower = x;
+        double backRightPower = -x;
+        double backLeftPower = x;
 
         boolean precision = gamepad1.left_bumper && gamepad1.right_bumper;
 
@@ -142,8 +156,17 @@ public class driveOP extends LinearOpMode {
         drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
     }
 
+    private void hold(){
+            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+        double x = gamepad1.left_stick_x; // Counteract imperfect strafing
+        double x_two = gamepad1.right_stick_x;
+                if(Math.abs(y)<0.01 && Math.abs(x) < 0.01 && Math.abs(x_two) < 0.01){
+            halt();
+        }
+    }
+
     private void armControl() {
-        double y = gamepad2.left_stick_y * 0.5;
+        double y = gamepad2.left_stick_y * 0.4;
 
         arm.setPower(y);
 
@@ -154,9 +177,9 @@ public class driveOP extends LinearOpMode {
         }
 
         if (gamepad2.right_bumper) {
-            rightHand.setPosition(1);
-        } else if (toBoolean(gamepad2.right_trigger)) {
             rightHand.setPosition(-1);
+        } else if (toBoolean(gamepad2.right_trigger)) {
+            rightHand.setPosition(1);
         }
     }
 
@@ -164,7 +187,7 @@ public class driveOP extends LinearOpMode {
         boolean fire = gamepad1.dpad_up && gamepad2.dpad_up;
 
         if (fire) {
-            droneLauncher.setPosition(-1);
+            droneLauncher.setPosition(1);
         }
     }
 
@@ -303,8 +326,8 @@ public class driveOP extends LinearOpMode {
             return false;
         }
         double rot = tag.get('y');
-        double output = 0.5;
-        if (Math.abs(rot) < 3) {
+        double output = 0.4;
+        if (Math.abs(rot) < 5) {
             halt();
             return true;
         }
@@ -332,7 +355,7 @@ public class driveOP extends LinearOpMode {
             return true;
         }
 
-        driveAdvanced(tag.get('x'), tag.get('y') + DISTANCE, 0.2);
+        driveAdvanced(tag.get('x'), tag.get('y') + DISTANCE, 0.5);
         return false;
     }
 
