@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import java.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -16,6 +17,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.HashMap;
 import java.util.List;
 
+import com.qualcomm.robotcore.util.ElapsedTime;
+
 @TeleOp(name = "DriveOPAuto")
 
 public class DriveOPAuto extends LinearOpMode {
@@ -27,6 +30,7 @@ public class DriveOPAuto extends LinearOpMode {
     private Servo leftHand;
     private Servo rightHand;
     private Servo droneLauncher;
+    ElapsedTime Timer;
 
     List<AprilTagDetection> myAprilTagDetections;
     boolean USE_WEBCAM;
@@ -53,10 +57,15 @@ public class DriveOPAuto extends LinearOpMode {
 
         USE_WEBCAM = false;
         initAprilTag();
-
+        
+        double currTime;
+        
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         // Wait for the game to start (driver presses PLAY)
+        Timer = new ElapsedTime();
+        Timer.reset();
+        currTime = Timer.time();
         waitForStart();
 
         // run until the end of the match (driver presses STOP)
@@ -112,10 +121,10 @@ public class DriveOPAuto extends LinearOpMode {
         boolean precision = gamepad1.left_bumper && gamepad1.right_bumper;
 
         if (precision) {
-            frontLeftPower *= 0.1;
-            backLeftPower *= 0.1;
-            frontRightPower *= 0.1;
-            backRightPower *= 0.1;
+            frontLeftPower *= 0.2;
+            backLeftPower *= 0.2;
+            frontRightPower *= 0.2;
+            backRightPower *= 0.2;
         }
 
         drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
@@ -165,11 +174,16 @@ public class DriveOPAuto extends LinearOpMode {
         }
     }
 
-    private void armControl() {
+    private boolean armControl() {
         double y = gamepad2.left_stick_y * 0.4;
-
+        boolean a = gamepad2.a;
+        
         arm.setPower(y);
-
+        
+        if(a) {
+            autoArm(3, 0.5);
+        }
+        
         if (gamepad2.left_bumper) {
             leftHand.setPosition(1);
         } else if (toBoolean(gamepad2.left_trigger)) {
@@ -181,6 +195,7 @@ public class DriveOPAuto extends LinearOpMode {
         } else if (toBoolean(gamepad2.right_trigger)) {
             rightHand.setPosition(1);
         }
+        return true;
     }
 
     private void setDroneLauncher() {
@@ -190,6 +205,22 @@ public class DriveOPAuto extends LinearOpMode {
             droneLauncher.setPosition(1);
         }
     }
+    
+     /**
+   * auto arm
+   */
+  private void autoArm(double secs, double power) {
+    Timer.reset();
+    while (Timer.milliseconds() <= secs * 1000) {
+      // Put loop blocks here.
+      arm.setPower(power);
+      telemetry.update();
+    }
+    arm.setPower(0);
+    telemetry.update();
+  }
+
+
 
     private void initAprilTag() {
         AprilTagProcessor.Builder myAprilTagProcessorBuilder;
@@ -348,7 +379,7 @@ public class DriveOPAuto extends LinearOpMode {
             halt();
             return false;
         }
-        final Double DISTANCE = 7.0;
+        final Double DISTANCE = 8.0;
 
         if (Math.abs(tag.get('y')) < DISTANCE && Math.abs(tag.get('x')) < 1) {
             halt();
@@ -364,8 +395,8 @@ public class DriveOPAuto extends LinearOpMode {
             while (gamepad1.a) {
                 telemetry.addLine("aligning");
                 telemetry.update();
-                if (turn()) {
-                    if (moveToPos())
+                if (armControl() && turn()) {
+                    if (armControl() && moveToPos())
                         telemetry.addLine("aligned");
                 }
             }
@@ -376,8 +407,8 @@ public class DriveOPAuto extends LinearOpMode {
             while (gamepad1.b) {
                 telemetry.addLine("aligning");
                 telemetry.update();
-                if (moveToPos()) {
-                    if (turn())
+                if (armControl() && moveToPos()) {
+                    if (armControl() && turn())
                         telemetry.addLine("aligned");
                 }
             }
