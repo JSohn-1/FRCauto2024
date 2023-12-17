@@ -79,7 +79,7 @@ public class poseBlueAlign extends LinearOpMode {
             // Move forward until tag is detected
             halt(0.5);
             Timer.reset();
-            while (getPosToAprilTag() == null && Timer.milliseconds() <= secs * 1000) {
+            while (getPosToAprilTag() == null && Timer.milliseconds() <= 12000) {
                 driveAdvanced(0, 1, 0.3);
                 telemetry.update();
             }
