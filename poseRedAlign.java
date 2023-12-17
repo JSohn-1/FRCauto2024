@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import java.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -16,8 +17,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.HashMap;
 import java.util.List;
 
-@Autonomous(name = "placepixelbluesidebackstageauto (Blocks to Java)")
-public class poseBlueAlign extends LinearOpMode {
+@Autonomous(name = "better red")
+public class PoseRedAlign extends LinearOpMode {
 
     private Servo leftHand;
     private Servo rightHand;
@@ -71,13 +72,13 @@ public class poseBlueAlign extends LinearOpMode {
         if (opModeIsActive()) {
             // driveAdvanced(x, y, magnitude, seconds)
 
-
             // Move into position
             halt(0.5);
-            driveAdvanced(1, 0, 0.4, 3.16687);
+            driveAdvanced(-1, 0, 0.4, 3.16687);
 
             // Move forward until tag is detected
             halt(0.5);
+
             Timer.reset();
             while (getPosToAprilTag() == null && Timer.milliseconds() <= secs * 1000) {
                 driveAdvanced(0, 1, 0.3);
@@ -94,18 +95,16 @@ public class poseBlueAlign extends LinearOpMode {
             halt(0.5);
             leftHand.setPosition(1);
             rightHand.setPosition(-1);
-            
-            // Lift arm and prepare for 
             halt(0.5);
             arms(0.4, -0.7);
 
             // Park
             halt(0.5);
-            driveAdvanced(0, 1, 0.3, 0.4);
+            driveAdvanced(0, -1, 0.3, 0.4);
             halt(0.5);
-            driveAdvanced(1, 0, 0.4, 2.85);
+            driveAdvanced(-1, 0, 0.4, 2.85);
             halt(0.5);
-            driveAdvanced(0, -1, 0.3, 2.16687);
+            driveAdvanced(0, 1, 0.3, 2.0);
             halt(0.1);
         }
     }
@@ -157,6 +156,7 @@ public class poseBlueAlign extends LinearOpMode {
         if (turn()) {
             if (moveToPos())
                 telemetry.addLine("aligned");
+                return;
         }
     }
 
@@ -173,97 +173,6 @@ public class poseBlueAlign extends LinearOpMode {
         arm.setPower(0);
         telemetry.update();
     }
-//
-//    /**
-//     * Describe this function...
-//     */
-//    private void Backard(double secs, double power) {
-//        Timer.reset();
-//        while (Timer.milliseconds() <= secs * 1000) {
-//            // Put loop blocks here.
-//            motor2.setPower(-power);
-//            motor1.setPower(-power);
-//            motor0.setPower(power);
-//            motor3.setPower(power);
-//        }
-//        motor2.setPower(0);
-//        motor1.setPower(0);
-//        motor0.setPower(0);
-//        motor3.setPower(0);
-//        telemetry.update();
-//    }
-//
-//    /**
-//     * Describe this function...
-//     */
-//    private void Forward(double secs, double power) {
-//        Timer.reset();
-//        while (Timer.milliseconds() <= secs * 1000) {
-//            // Put loop blocks here.
-//            motor2.setPower(power);
-//            motor1.setPower(power);
-//            motor0.setPower(-power);
-//            motor3.setPower(-power);
-//        }
-//        motor2.setPower(0);
-//        motor1.setPower(0);
-//        motor0.setPower(0);
-//        motor3.setPower(0);
-//        telemetry.update();
-//    }
-//
-//    /**
-//     * Describe this function...
-//     */
-//    private void wait(double secs) {
-//        Timer.reset();
-//        while (Timer.milliseconds() <= secs * 1000) {
-//            // Put loop blocks here.
-//            motor2.setPower(0);
-//            motor1.setPower(0);
-//            motor0.setPower(0);
-//            motor3.setPower(0);
-//        }
-//        telemetry.update();
-//    }
-//
-//    /**
-//     * Describe this function...
-//     */
-//    private void Right(double secs, double power) {
-//        Timer.reset();
-//        while (Timer.milliseconds() <= secs * 1000) {
-//            // Put loop blocks here.
-//            motor2.setPower(power);
-//            motor1.setPower(-power);
-//            motor0.setPower(-power);
-//            motor3.setPower(power);
-//        }
-//        motor2.setPower(0);
-//        motor1.setPower(0);
-//        motor0.setPower(0);
-//        motor3.setPower(0);
-//        telemetry.update();
-//    }
-//
-//    /**
-//     * Describe this function...
-//     */
-//    private void Left(double secs, double power) {
-//        Timer.reset();
-//        while (Timer.milliseconds() <= secs * 1000) {
-//            // Put loop blocks here.
-//            motor0.setPower(-power);
-//            motor1.setPower(power);
-//            motor2.setPower(power);
-//            motor3.setPower(-power);
-//        }
-//        motor2.setPower(0);
-//        motor1.setPower(0);
-//        motor0.setPower(0);
-//        motor3.setPower(0);
-//        telemetry.update();
-//    }
 
     private boolean turn() {
         HashMap<Character, Double> tag = getRotToAprilTag();
