@@ -16,7 +16,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.HashMap;
 import java.util.List;
 
-@Autonomous(name = "placepixelbluesidebackstageauto (Blocks to Java)")
+@Autonomous(name = "better blue")
 public class poseBlueAlign extends LinearOpMode {
 
     private Servo leftHand;
@@ -70,7 +70,6 @@ public class poseBlueAlign extends LinearOpMode {
 
         if (opModeIsActive()) {
             // driveAdvanced(x, y, magnitude, seconds)
-
 
             // Move into position
             halt(0.5);
