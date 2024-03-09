@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import java.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -22,6 +23,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @TeleOp(name = "DriveOPAuto")
 
 public class DriveOPAuto extends LinearOpMode {
+    // 3.5inches diameter1100ticks per rot
+    // 87.537800 ticks per inch
+    
+    final double ticksPerInch = 87.537800;
     private DcMotor frontRight;
     private DcMotor frontLeft;
     private DcMotor backRight;
@@ -55,6 +60,8 @@ public class DriveOPAuto extends LinearOpMode {
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        
+
         USE_WEBCAM = false;
         initAprilTag();
         
@@ -87,7 +94,10 @@ public class DriveOPAuto extends LinearOpMode {
         backLeft.setPower(backLeftPower);
         frontRight.setPower(frontRightPower);
         frontLeft.setPower(frontLeftPower);
+        
+        telemetry.addLine("backRightPos:" + Integer.valueOf(backRight.getCurrentPosition()).toString());
 
+        
         telemetry.update();
     }
 
@@ -106,25 +116,26 @@ public class DriveOPAuto extends LinearOpMode {
         
         // Determine the angle to robot needs to travel in
         double angle = Math.atan2(y, x);
-        double magnitude = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)) * 2;
+        double magnitude = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)) * 1.06687;
 
         double frontRightPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
         double frontLeftPower = Math.sin(angle + (Math.PI / 4)) * magnitude; 
         double backRightPower = Math.sin(angle + (Math.PI / 4)) * magnitude;
         double backLeftPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
         
-        frontRightPower += -x_two*2;
-        frontLeftPower += x_two*2;
-        backRightPower += -x_two*2;
-        backLeftPower += x_two*2;
+        frontRightPower += -x_two * 1.06687;
+        frontLeftPower += x_two*1.06687;
+        backRightPower += -x_two*1.06687;
+        backLeftPower += x_two*1.06687;
         
-        boolean precision = gamepad1.left_bumper && gamepad1.right_bumper;
+        boolean precision = gamepad1.left_bumper || gamepad1.right_bumper;
 
         if (precision) {
-            frontLeftPower *= 0.2;
-            backLeftPower *= 0.2;
-            frontRightPower *= 0.2;
-            backRightPower *= 0.2;
+            double markiplier = 0.5;
+            frontLeftPower *= markiplier;
+            backLeftPower *= markiplier;
+            frontRightPower *= markiplier;
+            backRightPower *= markiplier;
         }
 
         drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
@@ -156,10 +167,10 @@ public class DriveOPAuto extends LinearOpMode {
         boolean precision = gamepad1.left_bumper && gamepad1.right_bumper;
 
         if (precision) {
-            frontLeftPower *= 0.5;
-            backLeftPower *= 0.5;
-            frontRightPower *= 0.5;
-            backRightPower *= 0.5;
+            frontLeftPower *= 0.6;
+            backLeftPower *= 0.6;
+            frontRightPower *= 0.6;
+            backRightPower *= 0.6;
         }
 
         drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
@@ -177,13 +188,33 @@ public class DriveOPAuto extends LinearOpMode {
     private boolean armControl() {
         double y = gamepad2.left_stick_y * 0.4;
         boolean a = gamepad2.a;
+        boolean x=  gamepad2.x;
         
-        arm.setPower(y);
-        
-        if(a) {
-            autoArm(3, 0.5);
+        if(x){
+            arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            
+            backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
         
+        
+        // telemetry.addLine(Double.valueOf(y).toString());
+        if(arm.getCurrentPosition() < 2730){
+            arm.setPower(y);
+        }else if (y < 0){
+            arm.setPower(y);
+        } else {
+            arm.setPower(0);
+        }
+        if(arm.getCurrentPosition() > 2730){
+            arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        }else{
+            arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+
+        telemetry.addLine(Integer.valueOf(arm.getCurrentPosition()).toString());
+        telemetry.addLine(arm.getZeroPowerBehavior().name());
         if (gamepad2.left_bumper) {
             leftHand.setPosition(1);
         } else if (toBoolean(gamepad2.left_trigger)) {
