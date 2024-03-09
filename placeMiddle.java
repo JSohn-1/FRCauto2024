@@ -1,7 +1,6 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstins2pires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import java.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -17,9 +16,13 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.HashMap;
 import java.util.List;
 
-@Autonomous(name = "better red")
-public class PoseRedAlign extends LinearOpMode {
+enum Hand {
+    LEFT,
+    RIGHT
+}
 
+@Autonomous(name = "Place Middle")
+public class PlaceMiddle extends LinearOpMode {
     private Servo leftHand;
     private Servo rightHand;
     private DcMotor frontRight;
@@ -28,18 +31,14 @@ public class PoseRedAlign extends LinearOpMode {
     private DcMotor backLeft;
     private DcMotor arm;
 
-    ElapsedTime Timer;
+    final double ticksPerInch = 56;
+    final double ticksPerInchSideways = 68;
 
     List<AprilTagDetection> myAprilTagDetections;
-    boolean USE_WEBCAM;
     AprilTagProcessor myAprilTagProcessor;
     AprilTagDetection myAprilTagDetection;
     VisionPortal myVisionPortal;
 
-    /**
-     * This function is executed when this Op Mode is selected from the Driver
-     * Station.
-     */
     @Override
     public void runOpMode() {
         double currTime;
@@ -61,51 +60,34 @@ public class PoseRedAlign extends LinearOpMode {
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        USE_WEBCAM = false;
+        resetMotors();
+
+        arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        
         initAprilTag();
 
-        Timer = new ElapsedTime();
-        Timer.reset();
-        currTime = Timer.time();
         waitForStart();
-
         if (opModeIsActive()) {
-            // driveAdvanced(x, y, magnitude, seconds)
-
-            // Move into position
-            halt(0.5);
-            driveAdvanced(-1, 0, 0.4, 3.16687);
-
-            // Move forward until tag is detected
-            halt(0.5);
-
-            Timer.reset();
-            while (getPosToAprilTag() == null && Timer.milliseconds() <= 12000) {
-                driveAdvanced(0, 1, 0.3);
-                telemetry.update();
-            }
-
-            if (getPosToAprilTag() != null){
-                align();
-            }
-
-            // Lower the arm and drop the pixels
-            halt(0.5);
-            arms(2.7, 0.4);
-            halt(0.5);
-            leftHand.setPosition(1);
-            rightHand.setPosition(-1);
-            halt(0.5);
-            arms(0.4, -0.7);
-
-            // Park
-            halt(0.5);
-            driveAdvanced(0, -1, 0.3, 0.4);
-            halt(0.5);
-            driveAdvanced(-1, 0, 0.4, 2.85);
-            halt(0.5);
-            driveAdvanced(0, 1, 0.3, 2.0);
-            halt(0.1);
+            // Move to line
+            driveDistance(21);
+            dropArm();
+            openHand(Hand.RIGHT);
+            delay(0.3);
+            liftArm();
+            driveDistance(4);
+            turn(-90);
+            driveDistance(30);
+            strafe(5);
+            // driveUntilAprilTag();
+            // alignToAprilTag();
+            partialDropArm();
+            delay(0.5);
+            openHand(Hand.LEFT);
+            delay(0.5);
+            liftArm();
+            strafe(-30);
+            driveDistance(15);
         }
     }
 
@@ -118,106 +100,201 @@ public class PoseRedAlign extends LinearOpMode {
         telemetry.update();
     }
 
-    private void halt() {
-        drive(0,0,0,0);
-    }
+    private void driveDistance(double distance){
+        int ticks = (int) (distance * ticksPerInch);
+        backLeft.setTargetPosition(ticks);
+        backRight.setTargetPosition(-ticks);
+        frontLeft.setTargetPosition(ticks);
+        frontRight.setTargetPosition(-ticks);
 
-    private void halt(double seconds) {
+        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        
+        final double power = 0.3;
+        drive(-power, power, -power, power);
+
+        while (backLeft.isBusy() && backRight.isBusy() && frontLeft.isBusy() && frontRight.isBusy()) {
+            telemetry.addData("backLeft", backLeft.getCurrentPosition());
+            telemetry.addData("backRight", backRight.getCurrentPosition());
+            telemetry.addData("frontLeft", frontLeft.getCurrentPosition());
+            telemetry.addData("frontRight", frontRight.getCurrentPosition());
+            telemetry.update();
+        }
+
         drive(0, 0, 0, 0);
-        sleep((long) seconds * 1000);
+
+        resetMotors();
     }
 
-    private void driveAdvanced(double x, double y, double magnitude) {
-        double angle = Math.atan2(y, x);
+    private void strafe(double distance) {
+        int ticks = (int) (distance * ticksPerInchSideways);
+        backLeft.setTargetPosition(-ticks);
+        backRight.setTargetPosition(-ticks);
+        frontLeft.setTargetPosition(ticks);
+        frontRight.setTargetPosition(ticks);
 
-        double frontRightPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
-        double frontLeftPower = Math.sin(angle + (Math.PI / 4)) * magnitude;
-        double backRightPower = Math.sin(angle + (Math.PI / 4)) * magnitude;
-        double backLeftPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
+        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        
+        final double power = 0.3;
+        drive(-power, -power, power, power);
 
-        drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
+        while (backLeft.isBusy() && backRight.isBusy() && frontLeft.isBusy() && frontRight.isBusy()) {
+            telemetry.addData("backLeft", backLeft.getCurrentPosition());
+            telemetry.addData("backRight", backRight.getCurrentPosition());
+            telemetry.addData("frontLeft", frontLeft.getCurrentPosition());
+            telemetry.addData("frontRight", frontRight.getCurrentPosition());
+            telemetry.update();
+        }
+
+        drive(0, 0, 0, 0);
+
+        resetMotors();
     }
 
-    private void driveAdvanced(double x, double y, double magnitude, double seconds) {
-        double angle = Math.atan2(y, x);
+    private void turn(double degrees) {
+        final double ticksPerDegree = 15.5;
+        int ticks = (int) (degrees * ticksPerDegree);
+        backLeft.setTargetPosition(ticks);
+        backRight.setTargetPosition(ticks);
+        frontLeft.setTargetPosition(ticks);
+        frontRight.setTargetPosition(ticks);
 
-        double frontRightPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
-        double frontLeftPower = Math.sin(angle + (Math.PI / 4)) * magnitude;
-        double backRightPower = Math.sin(angle + (Math.PI / 4)) * magnitude;
-        double backLeftPower = Math.sin(angle - (Math.PI / 4)) * magnitude;
+        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        
+        final double power = 0.2;
+        drive(power, power, power, power);
 
-        drive(-backRightPower, backLeftPower, -frontRightPower, frontLeftPower);
-        sleep((long) seconds * 1000);
+        while (backLeft.isBusy() && backRight.isBusy() && frontLeft.isBusy() && frontRight.isBusy()) {
+            telemetry.addData("backLeft", backLeft.getCurrentPosition());
+            telemetry.addData("backRight", backRight.getCurrentPosition());
+            telemetry.addData("frontLeft", frontLeft.getCurrentPosition());
+            telemetry.addData("frontRight", frontRight.getCurrentPosition());
+            telemetry.update();
+        }
+
+        drive(0, 0, 0, 0);
+
+        resetMotors();
     }
 
-    private void align() {
-        // Keep calling the turn and moveToPos functions until the robot is aligned
-        telemetry.addLine("aligning");
-        telemetry.update();
+    private void driveUntilAprilTag() {
+        HashMap<Character, Double> pos = getPosToAprilTag();
+        final double power = 0.1;
 
-        Timer.reset();
-        while (Timer.milliseconds() <= 8000) {
-            if (turn()) {
-                if (moveToPos()) {
-                    return;
-                }
+        while (pos == null) {
+            drive(power, -power, power, -power);
+            pos = getPosToAprilTag();
+        }
+    }
+    
+    private void driveUntilAprilTagBackwards() {
+        HashMap<Character, Double> pos = getPosToAprilTag();
+        final double power = -0.1;
+
+        while (pos == null) {
+            drive(power, -power, power, -power);
+            pos = getPosToAprilTag();
+        }
+    }
+
+    private void alignToAprilTag() {
+        HashMap<Character, Double> pos = getPosToAprilTag();
+        final double power = 0.1;
+        final double distanceFromTag = 5;
+
+        while (Math.abs(pos.get('x')) > 3 || Math.abs(pos.get('y')) > distanceFromTag) {
+            
+            strafe(pos.get('x')); 
+            driveDistance(pos.get('y') - distanceFromTag);
+            pos = getPosToAprilTag();
+            
+            if (pos == null){
+                driveUntilAprilTagBackwards();
+                pos = getPosToAprilTag();
             }
         }
     }
 
-    /**
-     * move arm
-     */
-    private void arms(double secs, double power) {
-        Timer.reset();
-        while (Timer.milliseconds() <= secs * 1000) {
-            // Put loop blocks here.
-            arm.setPower(power);
+    private void dropArm() {
+        final double armTarget = 2750;
+        arm.setTargetPosition((int) armTarget);
+        arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        arm.setPower(0.2);
+
+        while (arm.isBusy()) {
+            telemetry.addData("arm", arm.getCurrentPosition());
             telemetry.update();
         }
+
         arm.setPower(0);
-        telemetry.update();
+        }
+        
+    private void partialDropArm(){
+        final double armTarget = 2100;
+        arm.setTargetPosition((int) armTarget);
+        arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        arm.setPower(0.2);
+
+        while (arm.isBusy()) {
+            telemetry.addData("arm", arm.getCurrentPosition());
+            telemetry.update();
+        }
+
+        arm.setPower(0);
+    }
+        
+    private void liftArm() {
+        final double armTarget = 30;
+        arm.setTargetPosition((int) armTarget);
+        arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        arm.setPower(-0.5);
+
+        while (arm.isBusy()) {
+            telemetry.addData("arm", arm.getCurrentPosition());
+            telemetry.update();
+        }
+
+        arm.setPower(0);
     }
 
-    private boolean turn() {
-        HashMap<Character, Double> tag = getRotToAprilTag();
-        if (tag == null) {
-            telemetry.addLine("none");
-            halt();
-            return false;
-        }
-        double rot = tag.get('y');
-        double output = 0.4;
-        if (Math.abs(rot) < 5) {
-            halt();
-            return true;
-        }
-        telemetry.addLine(Double.valueOf(rot).toString());
-        if (rot > 0) {
-            drive(output, output, output, output);
+    private void openHand(Hand hand) {
+        if (hand == Hand.LEFT) {
+            leftHand.setPosition(1);
         } else {
-            drive(-output, -output, -output, -output);
+            rightHand.setPosition(-1);
         }
-        telemetry.update();
-        return false;
     }
 
-    private boolean moveToPos() {
-        HashMap<Character, Double> tag = getPosToAprilTag();
-        if (tag == null) {
-            telemetry.addLine("none");
-            halt();
-            return false;
+    private void delay(double seconds) {
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
+        while (timer.milliseconds() < seconds * 1000) {
+            telemetry.addData("Time", timer.seconds());
+            telemetry.update();
         }
-        final Double DISTANCE = 8.0;
+    }
 
-        if (Math.abs(tag.get('y')) < DISTANCE && Math.abs(tag.get('x')) < 1) {
-            halt();
-            return true;
-        }
+    private void resetMotors() {
+        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        driveAdvanced(tag.get('x'), tag.get('y') + DISTANCE, 0.5);
-        return false;
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     // April tag stuff
@@ -225,27 +302,15 @@ public class PoseRedAlign extends LinearOpMode {
         AprilTagProcessor.Builder myAprilTagProcessorBuilder;
         VisionPortal.Builder myVisionPortalBuilder;
 
-        // First, create an AprilTagProcessor.Builder.
         myAprilTagProcessorBuilder = new AprilTagProcessor.Builder();
-        // Create an AprilTagProcessor by calling build.
         myAprilTagProcessor = myAprilTagProcessorBuilder.build();
-        // Next, create a VisionPortal.Builder and set attributes related to the camera.
         myVisionPortalBuilder = new VisionPortal.Builder();
-        if (USE_WEBCAM) {
-            // Use a webcam.
-            myVisionPortalBuilder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
-        } else {
-            // Use the device's back camera.
-            myVisionPortalBuilder.setCamera(BuiltinCameraDirection.BACK);
-        }
-        // Add myAprilTagProcessor to the VisionPortal.Builder.
+        myVisionPortalBuilder.setCamera(BuiltinCameraDirection.BACK);
         myVisionPortalBuilder.addProcessor(myAprilTagProcessor);
-        // Create a VisionPortal by calling build.
         myVisionPortal = myVisionPortalBuilder.build();
     }
 
     private HashMap<Character, Double> getPosToAprilTag() {
-        // Return the relative position to the AprilTags on the Board as a whole
         myAprilTagDetections = myAprilTagProcessor.getDetections();
         HashMap<Character, Double> finalPos = new HashMap<Character, Double>();
         HashMap<Integer, HashMap<Character, Double>> aprilTagPos = new HashMap<Integer, HashMap<Character, Double>>();

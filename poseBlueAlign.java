@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstins2pires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -42,6 +42,7 @@ public class poseBlueAlign extends LinearOpMode {
     @Override
     public void runOpMode() {
         double currTime;
+        final double ticksPerInch = 87.537800;
 
         backLeft = hardwareMap.get(DcMotor.class, "motor0");
         backRight = hardwareMap.get(DcMotor.class, "motor1");
@@ -151,11 +152,17 @@ public class poseBlueAlign extends LinearOpMode {
     }
 
     private void align() {
+        // Keep calling the turn and moveToPos functions until the robot is aligned
         telemetry.addLine("aligning");
         telemetry.update();
-        if (turn()) {
-            if (moveToPos())
-                telemetry.addLine("aligned");
+
+        Timer.reset();
+        while (Timer.milliseconds() <= 8000) {
+            if (turn()) {
+                if (moveToPos()) {
+                    return;
+                }
+            }
         }
     }
 
@@ -165,7 +172,6 @@ public class poseBlueAlign extends LinearOpMode {
     private void arms(double secs, double power) {
         Timer.reset();
         while (Timer.milliseconds() <= secs * 1000) {
-            // Put loop blocks here.
             arm.setPower(power);
             telemetry.update();
         }
