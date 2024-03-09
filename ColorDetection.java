@@ -13,10 +13,31 @@ import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-public class colorDetection {
-    private static ColorSensor color_REV_ColorRangeSensor;
+enum Color {
+    RED, BLUE, ERROR
+}
 
-    public static void initColorSensor(LinearOpMode opMode) {
+public class ColorDetection {
+    private static ColorSensor color_REV_ColorRangeSensor;
+    private static Color color;
+
+    public static void initColorSensor(LinearOpMode opMode, Color color) {
         color_REV_ColorRangeSensor = opMode.hardwareMap.get(ColorSensor.class, "color_REV_ColorRangeSensor");
+        this.color = color;
+    }
+
+    public static boolean check(){
+        if (color_REV_ColorRangeSensor.getDistance(DistanceUnit.CM) < 30) {
+            return getColor() == color;
+        }
+        return false;
+    }
+
+    public static Color getColor(){
+        NormalizedRGBA colors = color_REV_ColorRangeSensor.getNormalizedColors();
+        int color = colors.toColor();
+        telemetry.addData("Color", color);
+
+        return color == 0 ? Color.RED : Color.BLUE;
     }
 }
