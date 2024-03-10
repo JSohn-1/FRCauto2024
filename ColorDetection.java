@@ -13,31 +13,31 @@ import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-enum Color {
-    RED, BLUE, ERROR
-}
+// public enum Colors {
+//     RED, BLUE, ERROR
+// }
 
 public class ColorDetection {
     private static ColorSensor color_REV_ColorRangeSensor;
-    private static Color color;
+    private static Colors color;
 
-    public static void initColorSensor(LinearOpMode opMode, Color color) {
-        color_REV_ColorRangeSensor = opMode.hardwareMap.get(ColorSensor.class, "color_REV_ColorRangeSensor");
-        this.color = color;
+    public static void initColorSensor(LinearOpMode opMode, Colors colors) {
+        color_REV_ColorRangeSensor = opMode.hardwareMap.get(ColorSensor.class, "color");
+        color = colors;
     }
 
     public static boolean check(){
-        if (color_REV_ColorRangeSensor.getDistance(DistanceUnit.CM) < 30) {
+        if (((DistanceSensor)color_REV_ColorRangeSensor).getDistance(DistanceUnit.CM) < 30) {
             return getColor() == color;
         }
         return false;
     }
 
-    public static Color getColor(){
-        NormalizedRGBA colors = color_REV_ColorRangeSensor.getNormalizedColors();
+    public static Colors getColor(){
+        NormalizedRGBA colors = ((NormalizedColorSensor)color_REV_ColorRangeSensor).getNormalizedColors();
         int color = colors.toColor();
-        telemetry.addData("Color", color);
+        // telemetry.addData("Color", color);
 
-        return color == 0 ? Color.RED : Color.BLUE;
+        return color == 0 ? Colors.RED : Colors.BLUE;
     }
 }
